@@ -1,189 +1,41 @@
-/*
-  متجر إلكترونيات — React + Tailwind (Single-file example)
-  ================================================
-  هذه نسخة واجهة جاهزة ومركزة على التفاصيل الجمالية: 
-  - رأس مع بحث ذكي + أيقونة السلة مع عداد
-  - شريط تصنيفات أفقى
-  - بطاقات منتجات أنيقة مع تأثيرات hover
-  - مودال عرض المنتج (تفاصيل + مواصفات)
-  - درج سلة جانبي متحرك
-  - فلتر جانبي بسيط (متجاوب)
-
-  ملاحظات: لتشغيلها تحتاج TailwindCSS مُهيأ في المشروع و
-  حزم: framer-motion و lucide-react
-*/
-
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingCart, Menu, X, Heart, Star, Filter } from "lucide-react";
+import { Search, ShoppingCart, X, Star } from "lucide-react";
+import { Toaster, toast } from "react-hot-toast";
 
-// ---------------------- بيانات تجريبية ----------------------
-const CATEGORIES = [
-  "الكل",
-  "مستشعرات",
-  "شاشات",
-  "محركات",
-  "وحدات تحكم",
-  "ملحقات",
-];
-
+// ------------------ بيانات ------------------
+const CATEGORIES = ["الكل","مستشعرات","شاشات","محركات","وحدات تحكم","ملحقات"];
 const PRODUCTS = [
-  {
-    id: 1,
-    title: "حساس BME280 (حرارة / رطوبة / ضغط)",
-    price: 12.5,
-    category: "مستشعرات",
-    rating: 4.7,
-    description: "حساس دقيق لقياس الحرارة والرطوبة والضغط، مناسب للمشروعات الصغيرة والمتوسطة.",
-    specs: ["واجهة I2C", "دقة عالية", "مدى: -40 إلى 85°C"],
-  },
-  {
-    id: 2,
-    title:'شاشة OLED 0.96"'
-,
-    price: 7.99,
-    category: "شاشات",
-    rating: 4.3,
-    description: "شاشة OLED صغيرة مناسبة لعرض القيم والحالات.",
-    specs: ["128x64", "I2C", "زوايا رؤية واسعة"],
-  },
-  {
-    id: 3,
-    title: "محرك سيرفو SG90",
-    price: 4.5,
-    category: "محركات",
-    rating: 4.5,
-    description: "صغير وخفيف للحركات الدقيقة في الروبوتات والأنظمة.",
-    specs: ["4.8-6V", "قابل للتعديل", "زاوية ~180°"],
-  },
-  {
-    id: 4,
-    title: "وحدة ESP32-S3 (مع كاميرا وشاشة)",
-    price: 18.0,
-    category: "وحدات تحكم",
-    rating: 4.6,
-    description: "لوحة ESP32-S3 قوية مع دعم للكاميرا ومنافذ متعددة.",
-    specs: ["WiFi + Bluetooth", "دعم كاميرا OV2640", "GPIO متعددة"],
-  },
-  {
-    id: 5,
-    title: "WS2812 LED شريط (5m)",
-    price: 11.25,
-    category: "ملحقات",
-    rating: 4.4,
-    description: "شريط LED قابل للبرمجة، مثالي للإضاءة الجمالية.",
-    specs: ["5V", "قابل للبرمجة", "APA102/WS2812"],
-  },
-  {
-    id: 6,
-    title: "حساس مسافة VL53L1X (ToF)",
-    price: 9.5,
-    category: "مستشعرات",
-    rating: 4.2,
-    description: "حساس مسافة قابل للقياس بدقة عبر تقنية الطيران بالزمن.",
-    specs: ["I2C", "مدى طويل", "قياس دقيق"],
-  },
-  {
-    id: 7,
-    title: "شاشة TFT 2.8\" (لمشاريع الواجهة)",
-    price: 14.9,
-    category: "شاشات",
-    rating: 4.1,
-    description: "شاشة TFT مناسبة لواجهات المستخدم الغنية.",
-    specs: ["SPI", "لمس اختياري", "320x240"],
-  },
-  {
-    id: 8,
-    title: "محول مستوى TXS0108E",
-    price: 2.99,
-    category: "ملحقات",
-    rating: 4.0,
-    description: "محول مستوى لربط وحدات تعمل بفولتية مختلفة.",
-    specs: ["8 قنوات", "ثنائي الاتجاه", "مناسب للـ I/O"],
-  },
+  {id:1,title:"حساس BME280",price:12.5,category:"مستشعرات",rating:4.7,description:"حساس دقيق.",specs:["I2C","دقة عالية"]},
+  {id:2,title:'شاشة OLED 0.96"',price:7.99,category:"شاشات",rating:4.3,description:"شاشة صغيرة.",specs:["128x64","I2C"]},
+  {id:3,title:"محرك سيرفو SG90",price:4.5,category:"محركات",rating:4.5,description:"صغير وخفيف.",specs:["4.8-6V","زاوية 180°"]},
 ];
 
-// ---------------------- أدوات مساعدة ----------------------
-const formatPrice = (v) => `${v.toFixed(2)} $`;
-const initials = (name) => {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-};
+// ------------------ أدوات ------------------
+const formatPriceILS = v => `${(v*3.7).toFixed(2)} ₪`;
+const initials = name => name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
 
+// ------------------ مكونات ------------------
 function ProductImage({ name }) {
   const label = initials(name);
-  return (
-    <div className="h-36 w-full rounded-xl bg-gradient-to-br from-white to-slate-100 border border-slate-100 flex items-center justify-center">
-      <svg width="140" height="90" viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg">
-        <rect width="140" height="90" rx="12" fill="url(#g)" />
-        <defs>
-          <linearGradient id="g" x1="0" x2="1">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#f8fafc" />
-          </linearGradient>
-        </defs>
-        <text x="50%" y="52%" dominantBaseline="middle" textAnchor="middle" fontSize="28" fontFamily="Inter, Arial" fill="#0ea5e9">
-          {label}
-        </text>
-      </svg>
-    </div>
-  );
+  return <div className="h-24 w-24 rounded-xl bg-gradient-to-br from-white to-slate-100 border flex items-center justify-center">
+    <span className="text-2xl font-bold text-blue-600">{label}</span>
+  </div>;
 }
 
-// ---------------------- مكونات الواجهة ----------------------
 function ProductCard({ product, onAdd, onView }) {
   return (
-    <motion.article
-      layout
-      whileHover={{ y: -6 }}
-      className="relative bg-white rounded-2xl shadow-md p-4 hover:shadow-xl transition-shadow"
-      aria-label={product.title}
-    >
-      <div className="relative">
-        <ProductImage name={product.title} />
-        <div className="absolute top-3 left-3 bg-white/70 backdrop-blur rounded-full p-1">
-          <button aria-label="wishlist">
-            <Heart size={16} />
-          </button>
-        </div>
+    <motion.article layout whileHover={{y:-6}} className="bg-white rounded-2xl shadow-md p-4 hover:shadow-xl">
+      <ProductImage name={product.title}/>
+      <h3 className="font-semibold mt-3">{product.title}</h3>
+      <p className="text-sm text-slate-500">{product.category}</p>
+      <div className="flex items-center justify-between mt-3">
+        <span className="font-bold">{formatPriceILS(product.price)}</span>
+        <span className="flex items-center gap-1"><Star size={14} className="text-yellow-400"/>{product.rating}</span>
       </div>
-
-      <div className="mt-3">
-        <h3 className="font-semibold text-slate-800">{product.title}</h3>
-        <p className="text-sm text-slate-500 mt-1">{product.category}</p>
-
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold">{formatPrice(product.price)}</span>
-            <span className="text-sm text-slate-500">/ قطعة</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Star size={14} className="text-yellow-400" />
-            <span className="text-sm text-slate-600">{product.rating}</span>
-          </div>
-        </div>
-
-        <div className="mt-4 flex gap-2">
-          <button
-            onClick={() => onAdd(product)}
-            className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
-          >
-            أضف إلى السلة
-          </button>
-
-          <button
-            onClick={() => onView(product)}
-            className="py-2 px-3 rounded-xl border border-slate-200 text-sm hover:bg-slate-50"
-            aria-label="عرض" 
-          >
-            عرض
-          </button>
-        </div>
+      <div className="mt-4 flex gap-2">
+        <button onClick={(e)=>onAdd(product,e)} className="flex-1 py-2 rounded-xl bg-blue-600 text-white">أضف للسلة</button>
+        <button onClick={()=>onView(product)} className="py-2 px-3 rounded-xl border">عرض</button>
       </div>
     </motion.article>
   );
@@ -193,57 +45,21 @@ function ProductModal({ product, open, onClose, onAdd }) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 flex items-center justify-center p-4"
-        >
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 30, opacity: 0 }}
-            className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl p-6 relative"
-          >
-            <button
-              onClick={onClose}
-              className="absolute top-4 left-4 rounded-full p-2 hover:bg-slate-100"
-              aria-label="اغلاق" 
-            >
-              <X />
-            </button>
-
+        <motion.div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/30"
+          initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+          <motion.div className="w-full max-w-3xl bg-white rounded-3xl p-6 relative"
+            initial={{y:30,opacity:0}} animate={{y:0,opacity:1}} exit={{y:30,opacity:0}}>
+            <button onClick={onClose} className="absolute top-4 left-4 p-2 rounded-full"><X/></button>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <ProductImage name={product.title} />
-                <div className="mt-4 text-sm text-slate-600">{product.description}</div>
+                <ProductImage name={product.title}/>
+                <p className="mt-4 text-sm text-slate-600">{product.description}</p>
               </div>
-
               <div>
                 <h2 className="text-2xl font-bold">{product.title}</h2>
-                <p className="text-lg text-blue-600 font-semibold mt-2">{formatPrice(product.price)}</p>
-
-                <div className="mt-4">
-                  <h4 className="font-medium">المواصفات</h4>
-                  <ul className="mt-2 list-disc list-inside text-sm text-slate-600">
-                    {product.specs.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={() => onAdd(product)}
-                    className="bg-blue-600 text-white rounded-xl px-4 py-2 font-medium hover:bg-blue-700"
-                  >
-                    أضف إلى السلة
-                  </button>
-
-                  <button className="border border-slate-200 rounded-xl px-4 py-2">أضف للمفضلة</button>
-                </div>
-
-                <div className="mt-6 text-sm text-slate-500">SKU: #{product.id}</div>
+                <p className="text-lg text-blue-600 font-semibold mt-2">{formatPriceILS(product.price)}</p>
+                <ul className="list-disc list-inside text-sm text-slate-600 mt-2">{product.specs.map((s,i)=><li key={i}>{s}</li>)}</ul>
+                <button onClick={(e)=>onAdd(product,e)} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl">أضف للسلة</button>
               </div>
             </div>
           </motion.div>
@@ -253,216 +69,284 @@ function ProductModal({ product, open, onClose, onAdd }) {
   );
 }
 
-function CartDrawer({ open, onClose, cartItems, onRemove }) {
-  const subtotal = cartItems.reduce((s, it) => s + it.qty * it.product.price, 0);
+function AuthModal({ open, onClose, onLogin }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [firstName,setFirstName]=useState(""); const [lastName,setLastName]=useState("");
+  const [email,setEmail]=useState(""); const [password,setPassword]=useState("");
+  const [confirmPassword,setConfirmPassword]=useState("");
+  const [phone,setPhone]=useState(""); const [city,setCity]=useState(""); const [address,setAddress]=useState("");
+
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validatePhone = (phone) => /^[0-9]{8,15}$/.test(phone);
+
+  const handleSubmit = () => {
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    if(isLogin){
+      const user = users.find(u => u.email===email && u.password===password);
+      if(!user) return toast.error("بيانات الدخول غير صحيحة");
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      toast.success("تم تسجيل الدخول بنجاح");
+      onLogin(user);
+    } else {
+      if(!firstName||!lastName||!email||!password||!confirmPassword||!phone||!city||!address)
+        return toast.error("يرجى ملء جميع الحقول");
+      if(!validateEmail(email)) return toast.error("البريد الإلكتروني غير صالح");
+      if(!validatePhone(phone)) return toast.error("رقم الهاتف غير صالح");
+      if(password!==confirmPassword) return toast.error("كلمتا المرور غير متطابقتين");
+      if(users.some(u=>u.email===email)) return toast.error("البريد الإلكتروني موجود بالفعل");
+
+      const newUser = {firstName,lastName,email,password,phone,city,address};
+      users.push(newUser); localStorage.setItem("users",JSON.stringify(users));
+      localStorage.setItem("currentUser", JSON.stringify(newUser));
+      toast.success("تم إنشاء الحساب بنجاح");
+      onLogin(newUser);
+    }
+    onClose();
+  };
+
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/30 flex justify-end"
-        >
-          <motion.aside
-            initial={{ x: 300 }}
-            animate={{ x: 0 }}
-            exit={{ x: 300 }}
-            className="w-full max-w-md bg-white p-6 h-full shadow-2xl"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">سلة التسوق</h3>
-              <button onClick={onClose} aria-label="اغلاق"><X /></button>
-            </div>
+        <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30"
+          initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+          <motion.div className="bg-white rounded-2xl p-6 w-full max-w-md relative"
+            initial={{y:30,opacity:0}} animate={{y:0,opacity:1}} exit={{y:30,opacity:0}}>
+            <button onClick={onClose} className="absolute top-4 left-4 p-2 rounded-full"><X/></button>
+            <h3 className="text-xl font-bold mb-4">{isLogin ? "تسجيل دخول" : "إنشاء حساب"}</h3>
 
-            <div className="mt-6 space-y-4 overflow-auto h-[60vh] pr-2">
-              {cartItems.length === 0 ? (
-                <div className="text-center text-slate-500">السلة فارغة</div>
-              ) : (
-                cartItems.map((it) => (
-                  <div key={it.product.id} className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{it.product.title}</div>
-                      <div className="text-sm text-slate-500">{formatPrice(it.product.price)} × {it.qty}</div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="font-semibold">{formatPrice(it.product.price * it.qty)}</div>
-                      <button className="text-sm text-red-500" onClick={() => onRemove(it.product.id)}>إزالة</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            {!isLogin && <>
+              <input placeholder="الاسم الأول" value={firstName} onChange={e=>setFirstName(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+              <input placeholder="الاسم الأخير" value={lastName} onChange={e=>setLastName(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+              <input placeholder="رقم الهاتف" value={phone} onChange={e=>setPhone(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+              <input placeholder="اسم المدينة" value={city} onChange={e=>setCity(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+              <input placeholder="العنوان" value={address} onChange={e=>setAddress(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+            </>}
 
-            <div className="mt-6 border-t pt-4">
-              <div className="flex items-center justify-between">
-                <div className="text-slate-600">المجموع</div>
-                <div className="font-bold">{formatPrice(subtotal)}</div>
-              </div>
+            <input placeholder="البريد الإلكتروني" value={email} onChange={e=>setEmail(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+            <input type="password" placeholder="كلمة المرور" value={password} onChange={e=>setPassword(e.target.value)} className="w-full mb-2 p-2 border rounded"/>
+            {!isLogin && <input type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className="w-full mb-2 p-2 border rounded"/>}
 
-              <button className="mt-4 w-full bg-green-600 text-white py-3 rounded-xl font-medium">اتمام الشراء</button>
+            <button onClick={handleSubmit} className="w-full bg-blue-600 text-white py-2 rounded mt-3">
+              {isLogin ? "تسجيل دخول" : "إنشاء حساب"}
+            </button>
+
+            <div className="text-center mt-3 text-sm text-slate-500">
+              {isLogin ? "لا تملك حساب؟ " : "لديك حساب بالفعل؟ "}
+              <button onClick={()=>setIsLogin(!isLogin)} className="text-blue-600 font-semibold">
+                {isLogin ? "إنشاء حساب" : "تسجيل دخول"}
+              </button>
             </div>
-          </motion.aside>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
-// ---------------------- التطبيق الرئيسي ----------------------
-export default function ElectronicsStore() {
-  const [selectedCategory, setSelectedCategory] = useState("الكل");
-  const [search, setSearch] = useState("");
-  const [cart, setCart] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showCart, setShowCart] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+function CartModal({ isOpen, onClose, cart, onRemove, user }) {
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [expiryMonth, setExpiryMonth] = useState("");
+  const [expiryYear, setExpiryYear] = useState("");
 
-  const filtered = useMemo(() => {
-    return PRODUCTS.filter((p) => {
-      const okCat = selectedCategory === "الكل" ? true : p.category === selectedCategory;
-      const okSearch = search.trim() === "" ? true : p.title.toLowerCase().includes(search.toLowerCase());
-      return okCat && okSearch;
-    });
-  }, [selectedCategory, search]);
+  const total = cart.reduce((sum, item) => sum + item.product.price * item.qty, 0);
 
-  function addToCart(product, qty = 1) {
-    setCart((prev) => {
-      const found = prev.find((it) => it.product.id === product.id);
-      if (found) {
-        return prev.map((it) => (it.product.id === product.id ? { ...it, qty: it.qty + qty } : it));
-      }
-      return [{ product, qty }, ...prev];
-    });
-  }
+  const handleCheckout = () => {
+    if(cart.length === 0) return toast.error("سلتك فارغة 🛒");
 
-  function removeFromCart(productId) {
-    setCart((prev) => prev.filter((it) => it.product.id !== productId));
-  }
+    if(paymentMethod === "visa") {
+      if(cardNumber.length !== 16) return toast.error("رقم البطاقة يجب أن يكون 16 رقم");
+      if(cvv.length < 3 || cvv.length > 4) return toast.error("CVV غير صالح");
+      if(!expiryMonth || !expiryYear) return toast.error("الرجاء إدخال تاريخ الانتهاء");
+      toast.success("تم الدفع بنجاح باستخدام Visa ✅");
+    } else {
+      toast.success(`تم الدفع عند الاستلام. سيتم شحن الطلب إلى ${user.address} ✅`);
+    }
+
+    onClose();
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-800 p-6">
-      {/* Header */}
-      <header className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button className="md:hidden p-2 rounded-lg bg-white shadow-sm"><Menu /></button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white font-bold">EM</div>
-            <div>
-              <div className="text-sm text-slate-500">متجر</div>
-              <div className="font-bold">قطع إلكترونية</div>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}/>
+          <motion.div className="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 flex flex-col"
+            initial={{x:"100%"}} animate={{x:0}} exit={{x:"100%"}} transition={{type:"spring", damping:20}}>
+            
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-bold">سلة المشتريات</h2>
+              <button onClick={onClose}><X size={22}/></button>
             </div>
-          </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {cart.length === 0 ? <p className="text-gray-500 text-center">السلة فارغة</p> :
+                cart.map(it => (
+                  <div key={it.product.id} className="flex items-center justify-between border p-2 rounded-lg">
+                    <div>
+                      <h3 className="font-medium">{it.product.title}</h3>
+                      <p className="text-sm text-gray-500">{formatPriceILS(it.product.price)} × {it.qty}</p>
+                    </div>
+                    <button onClick={() => onRemove(it.product.id)} className="text-red-500 hover:text-red-700">حذف</button>
+                  </div>
+                ))
+              }
+
+              {/* اختيار طريقة الدفع */}
+              <div className="border p-4 rounded-lg space-y-3">
+                <h3 className="font-semibold">طريقة الدفع</h3>
+                <div className="flex gap-4">
+                  <button onClick={() => setPaymentMethod("cod")}
+                    className={`flex-1 py-2 rounded-xl ${paymentMethod==="cod"?"bg-blue-600 text-white":"bg-gray-100"}`}>
+                    دفع عند الاستلام
+                  </button>
+                  <button onClick={() => setPaymentMethod("visa")}
+                    className={`flex-1 py-2 rounded-xl ${paymentMethod==="visa"?"bg-blue-600 text-white":"bg-gray-100"}`}>
+                    Visa
+                  </button>
+                </div>
+
+                {paymentMethod === "visa" && (
+                  <div className="space-y-3 mt-2">
+                    <input type="text" placeholder="رقم البطاقة" maxLength={16}
+                      value={cardNumber} onChange={e=>setCardNumber(e.target.value)}
+                      className="w-full p-2 border rounded"/>
+                    <input type="text" placeholder="CVV" maxLength={4}
+                      value={cvv} onChange={e=>setCvv(e.target.value)}
+                      className="w-full p-2 border rounded"/>
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="شهر" maxLength={2}
+                        value={expiryMonth} onChange={e=>setExpiryMonth(e.target.value)}
+                        className="w-1/2 p-2 border rounded"/>
+                      <input type="text" placeholder="سنة" maxLength={2}
+                        value={expiryYear} onChange={e=>setExpiryYear(e.target.value)}
+                        className="w-1/2 p-2 border rounded"/>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === "cod" && user && (
+                  <div className="text-gray-600 text-sm mt-2 border p-2 rounded">
+                    سيتم شحن الطلب إلى:<br/>
+                    {user.firstName} {user.lastName} <br/>
+                    {user.phone} <br/>
+                    {user.city} - {user.address}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 border-t space-y-3">
+              <div className="flex justify-between font-bold">
+                <span>المجموع:</span>
+                <span>{formatPriceILS(total)}</span>
+              </div>
+              <button onClick={handleCheckout} className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg shadow">إتمام الشراء</button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ------------------ التطبيق الرئيسي ------------------
+export default function ElectronicsStore() {
+  const [selectedCategory,setSelectedCategory]=useState("الكل");
+  const [search,setSearch]=useState("");
+  const [cart,setCart]=useState(()=>{ const saved=localStorage.getItem("cart"); return saved?JSON.parse(saved):[]; });
+  const [selectedProduct,setSelectedProduct]=useState(null);
+  const [showCart,setShowCart]=useState(false);
+  const [authOpen,setAuthOpen]=useState(false);
+  const [user,setUser]=useState(()=>{ const saved=localStorage.getItem("currentUser"); return saved?JSON.parse(saved):null; });
+  const [flyProduct,setFlyProduct]=useState(null);
+  const [flyPos,setFlyPos]=useState({x:0,y:0,targetX:0,targetY:0});
+  const cartIconRef = useRef(null);
+
+  const filtered = useMemo(()=>PRODUCTS.filter(p=>{
+    const okCat = selectedCategory==="الكل"?true:p.category===selectedCategory;
+    const okSearch = search.trim()===""?true:p.title.toLowerCase().includes(search.toLowerCase());
+    return okCat && okSearch;
+  }),[selectedCategory,search]);
+
+  const addToCart=(product,e,qty=1)=>{
+    if(e && cartIconRef.current){
+      const rect = e.target.getBoundingClientRect();
+      const cartRect = cartIconRef.current.getBoundingClientRect();
+      setFlyPos({x: rect.left + rect.width/2, y: rect.top + rect.height/2, targetX: cartRect.left + cartRect.width/2, targetY: cartRect.top + cartRect.height/2});
+      setFlyProduct(product);
+    }
+
+    setCart(prev=>{
+      const found = prev.find(it=>it.product.id===product.id);
+      const updated = found?prev.map(it=>it.product.id===product.id?{...it,qty:it.qty+qty}:it):[{product,qty},...prev];
+      localStorage.setItem("cart",JSON.stringify(updated));
+      toast.success(`${product.title} أُضيفت للسلة`);
+      return updated;
+    });
+  };
+
+  const removeFromCart=id=>{ 
+    const updated = cart.filter(it=>it.product.id!==id); 
+    setCart(updated); 
+    localStorage.setItem("cart",JSON.stringify(updated)); 
+    toast("تمت إزالة المنتج"); 
+  };
+
+  const handleLogout=()=>{ setUser(null); localStorage.removeItem("currentUser"); toast("تم تسجيل الخروج"); };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6">
+      <Toaster position="top-right" reverseOrder={false}/>
+
+      <header className="max-w-7xl mx-auto flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-teal-400 flex items-center justify-center text-white font-bold">EM</div>
         </div>
-
-        <div className="flex-1 max-w-2xl">
-          <div className="relative">
-            <Search className="absolute top-3 left-3 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن قطعة، مثال: BME280, OLED..."
-              className="w-full pl-10 pr-4 py-3 rounded-full border border-slate-200 shadow-sm focus:outline-none"
-              aria-label="بحث المنتجات"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button className="hidden md:inline-flex items-center gap-2 text-sm px-3 py-2 rounded-full border">
-            تصفح الطلبات
+        <div className="flex items-center gap-2">
+          <input type="text" placeholder="بحث..." value={search} onChange={e=>setSearch(e.target.value)}
+            className="border rounded-xl p-2"/>
+          <button ref={cartIconRef} onClick={()=>setShowCart(true)} className="relative p-2 rounded-lg bg-white shadow-sm">
+            <ShoppingCart/>
+            {cart.length>0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full">{cart.reduce((s,i)=>s+i.qty,0)}</span>}
           </button>
-
-          <button
-            onClick={() => setShowCart(true)}
-            className="relative p-2 rounded-full bg-white shadow-sm"
-            aria-label="عرض السلة"
-          >
-            <ShoppingCart />
-            {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-2 py-0.5">{cart.reduce((s, i) => s + i.qty, 0)}</span>
-            )}
-          </button>
+          {!user ? 
+            <button onClick={()=>setAuthOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-xl">تسجيل / دخول</button> :
+            <button onClick={handleLogout} className="px-4 py-2 bg-gray-200 rounded-xl">خروج</button>
+          }
         </div>
       </header>
 
-      {/* Categories */}
-      <div className="max-w-7xl mx-auto mt-6">
-        <div className="flex gap-3 overflow-x-auto py-2">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setSelectedCategory(c)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full ${selectedCategory === c ? 'bg-blue-600 text-white' : 'bg-white border border-slate-100'}`}
-            >
-              {c}
-            </button>
-          ))}
-
-          <button onClick={() => setShowFilters((s) => !s)} className="ml-auto px-3 py-2 rounded-full bg-slate-100 flex items-center gap-2">
-            <Filter /> فلتر
-          </button>
-        </div>
+      <div className="max-w-7xl mx-auto flex gap-3 mb-6 overflow-x-auto">
+        {CATEGORIES.map(c=><button key={c} onClick={()=>setSelectedCategory(c)} 
+          className={`px-4 py-2 rounded-xl ${selectedCategory===c?"bg-blue-600 text-white":"bg-white shadow-sm"}`}>{c}</button>)}
       </div>
 
-      {/* المحتوى الرئيسي: فلتر + شبكة المنتجات */}
-      <main className="max-w-7xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* فلتر جانبي - يظهر في الشاشات الكبيرة */}
-        <aside className={`hidden md:block md:col-span-1 bg-white rounded-2xl p-4 shadow-sm`}> 
-          <h4 className="font-semibold">الفلتر</h4>
-          <div className="mt-4">
-            <div className="text-sm text-slate-600 mb-2">فئات</div>
-            <div className="flex flex-col gap-2">
-              {CATEGORIES.slice(1).map((c) => (
-                <button key={c} className={`text-left py-2 px-3 rounded-md ${selectedCategory === c ? 'bg-blue-50' : 'hover:bg-slate-50'}`} onClick={() => setSelectedCategory(c)}>{c}</button>
-              ))}
-            </div>
-          </div>
+      <section className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map(p=><ProductCard key={p.id} product={p} onAdd={addToCart} onView={setSelectedProduct}/>)}
+        {filtered.length===0 && <div className="col-span-full text-center text-slate-500">لا توجد منتجات مطابقة</div>}
+      </section>
 
-          <div className="mt-4">
-            <div className="text-sm text-slate-600">تقييم</div>
-            <div className="mt-2 flex gap-2">
-              {[4,3,2].map((r) => (
-                <button key={r} className="px-3 py-1 rounded-md border">{r}+ نجوم</button>
-              ))}
-            </div>
-          </div>
-        </aside>
+      {selectedProduct && <ProductModal product={selectedProduct} open={!!selectedProduct} onClose={()=>setSelectedProduct(null)} onAdd={addToCart}/>}
+      {authOpen && <AuthModal open={authOpen} onClose={()=>setAuthOpen(false)} onLogin={setUser}/>}
+      {showCart && <CartModal isOpen={showCart} onClose={()=>setShowCart(false)} cart={cart} onRemove={removeFromCart} user={user}/>}
 
-        {/* شبكة المنتجات */}
-        <section className="md:col-span-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((p) => (
-              <ProductCard key={p.id} product={p} onAdd={(prod) => addToCart(prod)} onView={(prod) => setSelectedProduct(prod)} />
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="mt-6 text-center text-slate-500">لا توجد منتجات مطابقة</div>
-          )}
-        </section>
-      </main>
-
-      {/* مودال المنتج */}
-      {selectedProduct && (
-        <ProductModal
-          open={!!selectedProduct}
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          onAdd={(p) => {
-            addToCart(p);
-            setSelectedProduct(null);
-          }}
-        />
-      )}
-
-      {/* درج السلة */}
-      <CartDrawer open={showCart} onClose={() => setShowCart(false)} cartItems={cart} onRemove={(id) => removeFromCart(id)} />
-
-      {/* Footer بسيط */}
-      <footer className="max-w-7xl mx-auto mt-12 text-center text-sm text-slate-500">
-        تصميم واجهة متجر أنيقة — قابل للتخصيص بالكامل.
-      </footer>
+      {/* تأثير الطيران */}
+      <AnimatePresence>
+        {flyProduct && (
+          <motion.div
+            key={flyProduct.id}
+            initial={{x: flyPos.x, y: flyPos.y, scale:1}}
+            animate={{x: flyPos.targetX, y: flyPos.targetY, scale:0.2, opacity:0}}
+            transition={{duration:0.8, ease:"easeInOut"}}
+            className="fixed z-50 pointer-events-none"
+            onAnimationComplete={()=>setFlyProduct(null)}
+          >
+            <ProductImage name={flyProduct.title}/>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
