@@ -1,6 +1,10 @@
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
+# مجلدات البناء والمخرجات
+/dist
+/node_modules
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+
+# ملفات Vite أو أخرى
+/.vite
