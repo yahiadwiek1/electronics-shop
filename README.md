@@ -1,6 +1,8 @@
 # yahia_290
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is a fully-featured online electronics store built with React, Tailwind CSS, and TypeScript. It leverages Framer Motion for smooth animations and Lucide React for sleek icons. The project demonstrates modern UI/UX design principles, responsive layouts, and interactive components for an enhanced user experience.
+
+This template also provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
 
