@@ -1,4 +1,4 @@
-# yahia_290
+# electronics-shop
 
 This is a fully-featured online electronics store built with React, Tailwind CSS, and TypeScript. It leverages Framer Motion for smooth animations and Lucide React for sleek icons. The project demonstrates modern UI/UX design principles, responsive layouts, and interactive components for an enhanced user experience.
 
@@ -19,23 +19,15 @@ export default tseslint.config([
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
       ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
       ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
       ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
     ],
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.node.json', './tsconfig.app.json'],
         tsconfigRootDir: import.meta.dirname,
       },
-      // other options...
     },
   },
 ])
